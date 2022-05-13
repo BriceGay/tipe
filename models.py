@@ -1,5 +1,6 @@
 import cv2
 
+
 class Camera:
 
     def __init__(self, camera):
@@ -13,7 +14,7 @@ class Camera:
         self.height = height
         self.fps = fps
         # vc.set(5, fps)  #set FPS
-        self.vc.set(3, width)   # set width
+        self.vc.set(3, width)  # set width
         self.vc.set(4, height)  # set height
 
         return self.vc.isOpened()

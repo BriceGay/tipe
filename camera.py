@@ -8,202 +8,88 @@ from PyQt5.QtMultimediaWidgets import *
 from PyQt5.QtWidgets import *
 
 
-# Main window class
+## La classe CameraWindow gère l'interface graphique et la caméra
+# Ce code est l'adaptation d'un exemple trouvé sur Stackoverflow
 class CameraWindow(QMainWindow):
 
-    # constructor
+    # création de l'interface au démarrage
     def __init__(self, f, moteur, icam):
         super().__init__()
-
-        # setting geometry
         self.setGeometry(100, 100,
                          800, 600)
+        self.setStyleSheet("background : lightgrey;") # modifie le style
+        self.available_cameras = QCameraInfo.availableCameras() # liste des caméras connectées
 
-        # setting style sheet
-        self.setStyleSheet("background : lightgrey;")
-        # getting available cameras
-        self.available_cameras = QCameraInfo.availableCameras()
-
-        # if no camera found
-        if not self.available_cameras:
+        if not self.available_cameras: # msg d'erreur si pas de camera dispo
             # exit the code
             print("PAS DE CAMERA TROUVEES -> EXIT")
             sys.exit()
 
-        # creating a status bar
-        self.status = QStatusBar()
-
-        # setting style sheet to the status bar
-        self.status.setStyleSheet("background : white;")
-
-        # adding status bar to the main window
-        self.setStatusBar(self.status)
-
-        # path to save
+        # dossier pour sauvegarder les images :
         self.save_path = "/home/brice/Bureau/Img_exp"
 
-        # creating a QCameraViewfinder object
+        # crée l'interface graphique :
+        # crée la bar d'état
+        self.status = QStatusBar()
+        self.status.setStyleSheet("background : white;")
+        self.setStatusBar(self.status)
+
+        # crée l'affichage de la camera
         self.viewfinder = QCameraViewfinder()
-
-        # showing this viewfinder
         self.viewfinder.show()
-
-        # making it central widget of main window
         self.setCentralWidget(self.viewfinder)
 
-        # Set the default camera.
-        self.select_camera(icam)
+        self.select_camera(icam) # selectionne une camera
 
-        # creating a tool bar
+        # crée la bar d'outil
         toolbar = QToolBar("Camera Tool Bar")
-
-        # adding tool bar to main window
         self.addToolBar(toolbar)
 
-        # creating a photo action to take photo
-        click_action = QAction("Click photo", self)
-        # adding status tip to the photo action
-        click_action.setStatusTip("This will capture picture")
-        # adding tool tip
-        click_action.setToolTip("Capture picture")
+        # cree les boutons
+        click_action = QAction("Sauvegarder", self)
+        click_run = QAction("Autofocus", self)
+        change_folder_action = QAction("Changer de dossier",self)
 
-        click_run = QAction("Run", self)
-
-
-        # adding action to it
-        # calling take_photo method
-        click_action.triggered.connect(self.click_photo)
-        click_run.triggered.connect(lambda : f(self, moteur))
-
-        # adding this to the tool bar
+        # ajoute les boutons à la bar d'outil
+        toolbar.addAction(change_folder_action)
         toolbar.addAction(click_action)
         toolbar.addAction(click_run )
 
-        # similarly creating action for changing save folder
-        change_folder_action = QAction("Change save location",
-                                       self)
-
-        # adding status tip
-        change_folder_action.setStatusTip("Change folder where picture will be saved saved.")
-
-        # adding tool tip to it
-        change_folder_action.setToolTip("Change save location")
-
-        # setting calling method to the change folder action
-        # when triggered signal is emitted
-        change_folder_action.triggered.connect(self.change_folder)
-
-        # adding this to the tool bar
-        toolbar.addAction(change_folder_action)
-
-        # creating a combo box for selecting camera
+        # cree la liste pour choisir la camera
         camera_selector = QComboBox()
-
-        # adding status tip to it
-        camera_selector.setStatusTip("Choose camera to take pictures")
-
-        # adding tool tip to it
-        camera_selector.setToolTip("Select Camera")
         camera_selector.setToolTipDuration(2500)
-
-        # adding items to the combo box
-        camera_selector.addItems([camera.description()
-                                  for camera in self.available_cameras])
-
-        # adding action to the combo box
-        # calling the select camera method
-        camera_selector.currentIndexChanged.connect(self.select_camera)
-
-        # adding this to tool bar
+        camera_selector.addItems([camera.description() for camera in self.available_cameras])
         toolbar.addWidget(camera_selector)
 
-        # setting tool bar stylesheet
-        toolbar.setStyleSheet("background : white;")
+        # connecte les boutons aux fonctions correspondantes
+        change_folder_action.triggered.connect(self.change_folder)
+        camera_selector.currentIndexChanged.connect(self.select_camera)
+        click_action.triggered.connect(self.click_photo)
+        click_run.triggered.connect(lambda : f(self, moteur))
 
-        # setting window title
-        self.setWindowTitle("PyQt5 Cam")
+        self.setWindowTitle("Autofocus Brice - Thibault") # change le titre
 
-        # showing the main window
-        self.show()
+        self.show() # affiche la fenetre
 
-    # method to select camera
+    # Change la camera utilisee
     def select_camera(self, i):
-
-        # getting the selected camera
+        #parametre la camera :
         self.camera = QCamera(self.available_cameras[i])
-
-        # setting view finder to the camera
         self.camera.setViewfinder(self.viewfinder)
-
-        # setting capture mode to the camera
         self.camera.setCaptureMode(QCamera.CaptureStillImage)
-
-        # if any error occur show the alert
-        self.camera.error.connect(lambda: self.alert(self.camera.errorString()))
-
-        # start the camera
         self.camera.start()
-
-        # creating a QCameraImageCapture object
         self.capture = QCameraImageCapture(self.camera)
-
-        # showing alert if error occur
-        self.capture.error.connect(lambda error_msg, error,
-                                          msg: self.alert(msg))
-
-        # when image captured showing message
-        self.capture.imageCaptured.connect(lambda d,
-                                                  i: self.status.showMessage("Image captured : "
-                                                                             + str(self.save_seq)))
-
-        # getting current camera name
         self.current_camera_name = self.available_cameras[i].description()
 
-        # initial save sequence
-        self.save_seq = 0
-
-    # method to take photo
-    def click_photo(self, name=""):
-        if len(name) == 0:
-            # time stamp
-            timestamp = time.strftime("%d-%b")
-            name = "%04d-%s.jpg" % (self.save_seq, timestamp)
-        # capture the image and save it on the save path
+    # Enregistre l'image actuelle et retourne l'endroit où elle est enregisrée
+    def click_photo(self, name):
         self.capture.capture(os.path.join(self.save_path,name))
-
-        # increment the sequence
-        self.save_seq += 1
         return self.save_path + "/" + name + ".jpg"
-    # change folder method
+
+    # Quand l'utilisateur veut changer de dossier d'enregistrement
     def change_folder(self):
+        #ouvre une fenetre pour choisir un nouveau dossier
+        path = QFileDialog.getExistingDirectory(self, "Picture Location", "")
 
-        # open the dialog to select path
-        path = QFileDialog.getExistingDirectory(self,
-                                                "Picture Location", "")
-
-        # if path is selected
-        if path:
-            # update the path
+        if path: # si un dossier est choisi :
             self.save_path = path
-            print(path)
-
-            # update the sequee
-            self.save_seq = 0
-
-    def getImage(self):
-
-        return
-
-    # method for alerts
-    def alert(self, msg):
-
-        # error message
-        error = QErrorMessage(self)
-
-        # setting text to the error message
-        error.showMessage(msg)
-
-
-# Driver code
-# create pyqt5 app
-

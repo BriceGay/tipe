@@ -1,3 +1,5 @@
+## INUTILE !
+
 """PySide6 Multimedia Camera Example"""
 
 import os

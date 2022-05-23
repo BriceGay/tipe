@@ -1,0 +1,39 @@
+// Code Arduino
+// Ce code est l'adaptation d'un exemple trouvé sur arduino.cc
+
+#include <Servo.h>
+
+Servo myservo;  // create servo object to control a servo
+int pos = 0;    // variable to store the servo position
+int analogPin = A0;
+int compteur, t, v;
+void setup() {
+
+  Serial.begin(115200); // ouvre canal de communication avec l'ordinateur
+  Serial.setTimeout(1);
+  myservo.attach(9);  // attaches the servo on pin 9 to the servo object
+
+  myservo.write(180);
+  while (!Serial.available()); // attend un msg
+  
+  compteur = 0;
+  
+}
+
+
+
+
+void loop() {
+  compteur++;// décompte avant l'échelon
+  if (compteur == 200) {
+   myservo.write(90) ;
+  }
+  t = millis();// mesure du temps
+  v = analogRead(A0);// mesure la tension de sortie du potensiomètre
+  Serial.print(t);//affiche le temps
+  Serial.print("\t");
+  Serial.print(v);// affiche la tension
+  Serial.print("\n");
+  delay(2);
+
+}

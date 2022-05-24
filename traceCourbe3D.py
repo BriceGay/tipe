@@ -32,6 +32,9 @@ ax.plot_surface(X, Y, Z, rstride=1, cstride=1, cmap='viridis', edgecolor='none')
 # ajout légendes
 ax.set_xlabel('Nb pts\nbalayage 1')
 ax.set_ylabel('Nb pts\nbalayage 2')
-ax.set_zlabel('Nb de pts de mesure');
+ax.set_zlabel('Durée totale');
 
 plt.show()  # affichage
+
+print(np.amin(Z))
+print(np.argmin(Z))
